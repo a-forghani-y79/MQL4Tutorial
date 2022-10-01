@@ -20,15 +20,22 @@ public:
    void              print();
    int               getStatus();
 };
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 void Position::print(void) {
    Print("hh: "+ hh+" ll: +"+ll+" crossHH: "+crossHH+" crossLL: "+crossLL);
 }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 int Position::getStatus(void) {
-   if(crossHH>2) {
-      return 1;
-   } else if(crossLL>2) {
-      return -1;
-   }
+   if(!isOpen)
+      if(crossHH>2) {
+         return 1;
+      } else if(crossLL>2) {
+         return -1;
+      }
    return 0;
 }
 
@@ -38,25 +45,24 @@ int OnInit() {
    lastIndex=0;
    return(INIT_SUCCEEDED);
 }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 void OnDeinit(const int reason) {
    Print(__FUNCTION__);
 }
+
+double getLotSize(){
+ Print("Balance: "+AccountBalance());
+   Print("eq: "+AccountEquity());
+   return 0.5;
+}
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 void OnTick() {
    if(NewBar(_Period)) {
-
-
-      // update open positions SL
-
-//          if(OrdersTotal()>0)
-//          {
-//         double tenkanSL= iIchimoku(NULL,0,9,26,9,MODE_TENKANSEN,1);
-//         for(int i=0; i<OrdersTotal(); i++)
-//          {
-//             OrderSelect(i,SELECT_BY_POS,MODE_TRADES);
-//             OrderModify(OrderTicket(),OrderOpenPrice(),tenkanSL,OrderTakeProfit(),0,clrNONE);
-//          }
-//         }
-
+  
       // update positions HH and LL cross' with price
       for(int i=0; i<lastIndex; i++) {
          if(positions[i].isOpen) {
@@ -64,26 +70,6 @@ void OnTick() {
          }
          double hh = positions[i].hh;
          double ll = positions[i].ll;
-//         double ave1 = getAve(Open[0],Close[0]);
-//         double ave2 = getAve(Open[1],Close[1]);
-//
-//         if((ave2 >= hh && ave1 <= hh)||(ave2<=hh && ave1>=hh && ave1> ave2)) {
-//            Print("recognize new cross for position at HH");
-//            positions[i].print();
-//            Print("hh:"+hh);
-//            Print("ave1:"+ave1);
-//            Print("ave2:"+ave2);
-//            positions[i].crossHH+=1;
-//         }
-//
-//         if((ave2 >= ll && ave1 <= ll && ave2> ave1)||(ave2<=ll && ave1>=ll && ave1> ave2)) {
-//            Print("recognize new cross for position at LL");
-//            positions[i].print();
-//            Print("ll:"+ll);
-//            Print("ave1:"+ave1);
-//            Print("ave2:"+ave2);
-//            positions[i].crossLL+=1;
-//         }
          double open = Open[1];
          double close = Close[1];
          if((open >= hh && close <= hh)||(open<=hh && close>=hh)) {
@@ -113,58 +99,44 @@ void OnTick() {
          double hh = positions[i].hh;
          double ll = positions[i].ll;
          int status = positions[i].getStatus();
-         double vol = 0.01;
-         if (status == 1 || status == -1){
-         int OP_Type = int(0.5 * ( ((1+status)*OP_BUY) + ((1-status)*OP_SELL) ));
-         int mSLS = MarketInfo(Symbol(),MODE_STOPLEVEL);
-         color COL[2] = {clrBlue,clrRed};
-         color COLOR = COL[OP_Type];
-         double OOP =  (0.5*((1+status)*Ask+(1-status)*Bid));
-         double tp;
-         double sl;
-         if(status ==1)
-           {
-            tp = (hh + (getDiff(hh,ll)/2));
-            sl = (hh - (getDiff(hh,ll)/3));
-           }else{
-           tp = (ll- (getDiff(hh,ll)/2));
-           sl = (ll+ (getDiff(hh,ll)/3));
-           }
-
-         if (sl <= mSLS) // I set my sl as the minimum allowed
-           {
-             sl = 1 + mSLS;
-           }
-         double SLP =  OOP - status * sl * Point;
-         if (tp <= mSLS) // I set my tp as the minimum allowed
-           {
-             tp = 1 + mSLS;
-           }
-         double TPP =  OOP + status * tp * Point;
-         float ls = 0.01;
-         int slip = 3; //(pips)
-         Print("Try to open a position !!!");
-         Print("OOP: "+OOP);
-         Print("SLP: "+SLP);
-         Print("TPP: "+TPP);
-         int order = OrderSend(Symbol(),OP_Type,ls,OOP,slip,SLP,TPP,"",0,0,COLOR);
-         positions[i].isOpen=true;
-
-/*
-            if(status==1) {
-                OrderSend(Symbol(),OP_BUY,vol,Ask,3,(hh - (getDiff(hh,ll)/2)),(hh + (getDiff(hh,ll)/2)),"",0,0,clrBlue);
-                positions[i].isOpen=true;
-            } else if(status == -1) {
-                OrderSend(Symbol(),OP_SELL,vol,Bid,3,(ll+ (getDiff(hh,ll)/2)),(ll- (getDiff(hh,ll)/2)),"",0,0,clrRed);
-                positions[i].isOpen=true;
+         if (status == 1 || status == -1) {
+            int OP_Type = int(0.5 * ( ((1+status)*OP_BUY) + ((1-status)*OP_SELL) ));
+            int mSLS = MarketInfo(Symbol(),MODE_STOPLEVEL);
+            color COL[2] = {clrBlue,clrRed};
+            color COLOR = COL[OP_Type];
+            double OOP =  (0.5*((1+status)*Ask+(1-status)*Bid));
+            double tp;
+            double sl;
+            if(status ==1) {
+               tp = (hh + (getDiff(hh,ll)/2));
+               sl = (hh - (getDiff(hh,ll)/3));
+            } else {
+               tp = (ll- (getDiff(hh,ll)/2));
+               sl = (ll+ (getDiff(hh,ll)/3));
             }
-  */
+
+            if (sl <= mSLS) { // I set my sl as the minimum allowed
+               sl = 1 + mSLS;
+            }
+            double SLP =  OOP - status * sl * Point;
+            if (tp <= mSLS) { // I set my tp as the minimum allowed
+               tp = 1 + mSLS;
+            }
+            double TPP =  OOP + status * tp * Point;
+            
+            int slip = 3; //(pips)
+            Print("Try to open a position !!!");
+            Print("OOP: "+OOP);
+            Print("SLP: "+SLP);
+            Print("TPP: "+TPP);
+            int order = OrderSend(Symbol(),OP_Type,getLotSize(),OOP,slip,SLP,TPP,"",0,0,COLOR);
+            positions[i].isOpen=true;
          }
 
       }
 
       if(isTenKenCrossKijunAtShift(1)&& (!isCrossedDuringShift(19))) {
-        Print("find new position and close[1] is: ");
+         Print("find new position and close[1] is: ");
          Print(Close[1]);
          double hPrice = getHH(19);
          double lPrice = getLL(19);
@@ -176,16 +148,10 @@ void OnTick() {
          positions[lastIndex].ll=lPrice;
          positions[lastIndex].isOpen=false;
          lastIndex+=1;
+        
 
       }
    }
-
-//  limit++;
-//  if(limit ==20)
-//    {
-//     limit=0;
-//    }
-// }
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
