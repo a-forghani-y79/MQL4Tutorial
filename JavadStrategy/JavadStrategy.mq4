@@ -7,6 +7,13 @@
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
+// inputs 
+input int tenkenSenPeriod=9;
+input int kijunSenPeriod = 26;
+input int tradePeriod = 18;
+
+
+
 datetime ArrayTime[], LastTime;
 int lastIndex;
 int limit =0;
@@ -53,9 +60,8 @@ void OnDeinit(const int reason) {
 }
 
 double getLotSize(){
- Print("Balance: "+AccountBalance());
-   Print("eq: "+AccountEquity());
-   return 0.5;
+   //return MathMin(AccountBalance(),AccountEquity())*risk;
+   return 0.03;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -135,11 +141,11 @@ void OnTick() {
 
       }
 
-      if(isTenKenCrossKijunAtShift(1)&& (!isCrossedDuringShift(19))) {
+      if(isTenKenCrossKijunAtShift(1)&& (!isCrossedDuringShift(tradePeriod))) {
          Print("find new position and close[1] is: ");
          Print(Close[1]);
-         double hPrice = getHH(19);
-         double lPrice = getLL(19);
+         double hPrice = getHH(tradePeriod);
+         double lPrice = getLL(tradePeriod);
          Print("last 19 hh is Price: " + hPrice);
          Print("last 19 ll is price: " + lPrice);
          positions[lastIndex].crossHH=0;
@@ -157,11 +163,11 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isTenKenCrossKijunAtShift(int shift) {
-   double tenkan1= iIchimoku(NULL,0,9,26,9,MODE_TENKANSEN,shift);
-   double  kijun1 =  iIchimoku(NULL,0,9,26,9,MODE_KIJUNSEN,shift);
+   double tenkan1= iIchimoku(NULL,0,tenkenSenPeriod,kijunSenPeriod,9,MODE_TENKANSEN,shift);
+   double  kijun1 =  iIchimoku(NULL,0,tenkenSenPeriod,kijunSenPeriod,9,MODE_KIJUNSEN,shift);
 
-   double tenkan2= iIchimoku(NULL,0,9,26,9,MODE_TENKANSEN,shift+1);
-   double  kijun2 =  iIchimoku(NULL,0,9,26,9,MODE_KIJUNSEN,shift+1);
+   double tenkan2= iIchimoku(NULL,0,tenkenSenPeriod,kijunSenPeriod,9,MODE_TENKANSEN,shift+1);
+   double  kijun2 =  iIchimoku(NULL,0,tenkenSenPeriod,kijunSenPeriod,9,MODE_KIJUNSEN,shift+1);
 
    if((tenkan2 >= kijun2 && tenkan1 <= kijun1)||(tenkan2 <= kijun2 && tenkan1 >= kijun1)) {
       return true;
