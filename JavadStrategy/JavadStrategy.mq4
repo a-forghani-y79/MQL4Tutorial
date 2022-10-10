@@ -12,6 +12,7 @@ input int tenkenSenPeriod=9;
 input int kijunSenPeriod = 26;
 input int tradePeriod = 18;
 input bool debugMode = false;
+input double riskPercentage =1;
 
 
 
@@ -61,12 +62,12 @@ void OnDeinit(const int reason) {
 }
 
 double getLotSize(double balance, double riskPercentage,double entryToStopLoss){
-   double volume = NormalizeDouble((balance*riskPercentage)/entryToStopLoss,Digits);
+   double volume = NormalizeDouble(((balance*riskPercentage)/(entryToStopLoss*100))*Point,2);
    if(debugMode)
      {
       Print(__FUNCTION__);
-      Print("parameters:[ balance: "+DoubleToString(balance,5)+" riskPercentage: "+DoubleToString(riskPercentage,5)+" entryToStopLoss: "+DoubleToString(entryToStopLoss,5)+" ]");
-      Print("volume: "+DoubleToString(volume,5));
+      Print("parameters:[ balance: "+DoubleToString(balance,2)+" riskPercentage: "+DoubleToString(riskPercentage,2)+" entryToStopLoss: "+DoubleToString(entryToStopLoss,2)+" ]");
+      Print("volume: "+DoubleToString(volume,2));
      }
    return volume;
 }
@@ -132,8 +133,7 @@ void OnTick() {
                sl = 1 + mSLS;
             }
             double SLP =  NormalizeDouble(OOP - status * sl * Point,2);
-            Print("kakaka: "+ (sl*Point));
-            Print("kakaka: "+ (Point));
+          
             if (tp <= mSLS) { // I set my tp as the minimum allowed
                tp = 1 + mSLS;
             }
@@ -145,7 +145,7 @@ void OnTick() {
             Print("SLP: "+SLP);
             Print("TPP: "+TPP);
             Print("Point: "+ DoubleToString(Point));
-            int order = OrderSend(Symbol(),OP_Type,getLotSize(10000,2,SLP),OOP,slip,SLP,TPP,"",0,0,COLOR);
+            int order = OrderSend(Symbol(),OP_Type,getLotSize(AccountBalance(),riskPercentage,MathAbs(SLP-OOP)),OOP,slip,SLP,TPP,"",0,0,COLOR);
             positions[i].isOpen=true;
          }
 
