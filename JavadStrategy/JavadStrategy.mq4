@@ -11,6 +11,7 @@
 input int tenkenSenPeriod=9;
 input int kijunSenPeriod = 26;
 input int tradePeriod = 18;
+input bool debugMode = false;
 
 
 
@@ -31,7 +32,7 @@ public:
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Position::print(void) {
-   Print("hh: "+ hh+" ll: +"+ll+" crossHH: "+crossHH+" crossLL: "+crossLL);
+   Print("hh: "+ DoubleToStr(hh)+" ll: +"+DoubleToStr(ll)+" crossHH: "+IntegerToString(crossHH)+" crossLL: "+IntegerToString(crossLL));
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -59,9 +60,15 @@ void OnDeinit(const int reason) {
    Print(__FUNCTION__);
 }
 
-double getLotSize(){
-   //return MathMin(AccountBalance(),AccountEquity())*risk;
-   return 0.03;
+double getLotSize(double balance, double riskPercentage,double entryToStopLoss){
+   double volume = NormalizeDouble((balance*riskPercentage)/entryToStopLoss,Digits);
+   if(debugMode)
+     {
+      Print(__FUNCTION__);
+      Print("parameters:[ balance: "+DoubleToString(balance,5)+" riskPercentage: "+DoubleToString(riskPercentage,5)+" entryToStopLoss: "+DoubleToString(entryToStopLoss,5)+" ]");
+      Print("volume: "+DoubleToString(volume,5));
+     }
+   return volume;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -80,7 +87,7 @@ void OnTick() {
          double close = Close[1];
          if((open >= hh && close <= hh)||(open<=hh && close>=hh)) {
             Print("recognize new cross for position at HH");
-            Print("hh:"+hh);
+            Print("hh:"+DoubleToStr(hh));
             Print("open:"+open);
             Print("close:"+close);
             positions[i].crossHH+=1;
@@ -124,7 +131,9 @@ void OnTick() {
             if (sl <= mSLS) { // I set my sl as the minimum allowed
                sl = 1 + mSLS;
             }
-            double SLP =  OOP - status * sl * Point;
+            double SLP =  NormalizeDouble(OOP - status * sl * Point,2);
+            Print("kakaka: "+ (sl*Point));
+            Print("kakaka: "+ (Point));
             if (tp <= mSLS) { // I set my tp as the minimum allowed
                tp = 1 + mSLS;
             }
@@ -135,7 +144,8 @@ void OnTick() {
             Print("OOP: "+OOP);
             Print("SLP: "+SLP);
             Print("TPP: "+TPP);
-            int order = OrderSend(Symbol(),OP_Type,getLotSize(),OOP,slip,SLP,TPP,"",0,0,COLOR);
+            Print("Point: "+ DoubleToString(Point));
+            int order = OrderSend(Symbol(),OP_Type,getLotSize(10000,2,SLP),OOP,slip,SLP,TPP,"",0,0,COLOR);
             positions[i].isOpen=true;
          }
 
@@ -146,8 +156,8 @@ void OnTick() {
          Print(Close[1]);
          double hPrice = getHH(tradePeriod);
          double lPrice = getLL(tradePeriod);
-         Print("last 19 hh is Price: " + hPrice);
-         Print("last 19 ll is price: " + lPrice);
+         Print("last 19 hh is Price: " + DoubleToStr(hPrice));
+         Print("last 19 ll is price: " + DoubleToStr(lPrice));
          positions[lastIndex].crossHH=0;
          positions[lastIndex].crossLL=0;
          positions[lastIndex].hh=hPrice;
